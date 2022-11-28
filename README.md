@@ -1,6 +1,12 @@
 # LOYTRA - Linux Os pYThon Repository Assistant
 Use it to clone and pip install python git projects. Adds support for "syncing" and "unsyncing" custom packages and easily setup and control systemd services provided by an installed repo.
 
+## Intro
+To be able to use a git repo as a `loytra` controlled lib, add a `__loytra_module__.py` file to the root of your lib repo. As `loytra` is managed by itself, you can look at [__loytra_module__.py](__loytra_module__.py) to see an example.
+
+## Directory structure
+All repos controlled by `loytra` have to be located in the same parent directory as `loytra` itself.
+
 ## Setup
 ### Installation
 Make sure that you have `python` and `pip` installed.
@@ -15,8 +21,12 @@ rm ~/.local/bin/loytra*
 rm -r ~/.local/lib/python3.10/site-packages/loytra*
 ```
 
-### Control
-You can start by typing `loytra` in your terminal to see all available commands.
+## Usage
+Run `loytra` in your terminal to start the integrated CLI or use the available commands directly using `loytra [COMMAND]`.
+
+## Commands
+`install [HTTPS_GIT_REPO]` - clone and pip install a repo
+...
 
 
 ## [License](LICENSE)
