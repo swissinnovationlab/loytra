@@ -1,16 +1,14 @@
 #!/usr/bin/env python3
 
 import os
-import trace
 import traceback
 from typing import Optional
-
 from loytra_common import log_factory
 from loytra_common.utils import TCOL
 from loytra_modules import Moduler
 from loytra_modules._module_finder import find_loytra_modules, get_loytra_modules_by_folder_name
 from loytra_modules._token_storage import storage_write_value
-from loytra_modules._module_spec import LoytraModule
+from loytra_modules._module_spec import LoytraModule, LoytraModuleInstance
 from loytra_modules._loytra_packager import Packager, PackagerGroup
 
 
@@ -32,32 +30,40 @@ class LoytraCliActions:
 
     def get_servicer_by_module_service_name(self, module_service_name):
         module_name, _, service_name = module_service_name.partition("/")
+
         module = self._modules.get(module_name)
         if module is None:
             self._logger.error(f"Module {module_name} not supported.")
             return None
+
         moduler = module.moduler
-        if not moduler.is_installed():
+        if not moduler.is_installed() or not isinstance(module, LoytraModuleInstance):
             self._logger.error(f"Module {module_name} not installed.")
             return None
+
         servicer = module.services.get(service_name)
         if servicer is None:
             self._logger.error(f"Servicer for {module_service_name} not found.")
+
         return servicer
 
     def get_packager_by_module_package_name(self, module_package_name):
         module_name, _, package_name = module_package_name.partition("/")
+
         module = self._modules.get(module_name)
         if module is None:
             self._logger.error(f"Module {module_name} not supported.")
             return None
+
         moduler = module.moduler
-        if not moduler.is_installed():
+        if not moduler.is_installed() or not isinstance(module, LoytraModuleInstance):
             self._logger.error(f"Module {module_name} not installed.")
             return None
+
         packager = module.packages.get(package_name)
         if packager is None:
             self._logger.error(f"Packager for {module_package_name} not found.")
+
         return packager
 
     def install(self, module_name):
@@ -111,13 +117,17 @@ class LoytraCliActions:
     def restart(self, module_service_name=None):
         if module_service_name is None or len(module_service_name.strip()) == 0:
             print(f"{TCOL.FAIL}{TCOL.BOLD}{'Restarting running services:'}{TCOL.END}")
-            for module in self._modules:
-                for service in self._modules[module].services:
-                    servicer = self._modules[module].services[service]
+            for module in self._modules.values():
+                if not isinstance(module, LoytraModuleInstance):
+                    self._logger.warning(f"Module {module.module_name} is not installed!")
+                    continue
+
+                for service in module.services:
+                    servicer = module.services[service]
                     active = servicer.get_active_state().startswith("activ")
                     servicer.install()
                     if active:
-                        name = f"{module}/{service}"
+                        name = f"{module.module_name}/{service}"
                         print(f"  {name}")
                         servicer.restart()
         else:
@@ -193,7 +203,7 @@ class LoytraCliActions:
             target_module_name = path_parts[0]
             target_packager_path = path_parts[1:]
             for module_name, module in self._modules.items():
-                if module_name == target_module_name:
+                if module_name == target_module_name and isinstance(module, LoytraModuleInstance):
                     found_module = module
                     packager = self._find_packager_in_path(list(module.packages.values()), target_packager_path)
                     if packager is not None:
@@ -216,13 +226,12 @@ class LoytraCliActions:
             self._logger.error(f"Package {module_package_name} not found.")
 
     def status(self):
-        for module in self._modules:
+        for module in self._modules.values():
             string = ""
-            moduler = self._modules[module].moduler
-            if moduler.is_installed():
-                services = self._modules[module].services
+            if isinstance(module, LoytraModuleInstance) and module.moduler.is_installed():
+                services = module.services
                 if len(services) > 0:
-                    string += f"{TCOL.BOLD}{module}{TCOL.END}"
+                    string += f"{TCOL.BOLD}{module.module_name}{TCOL.END}"
                     for service_name, servicer in services.items():
                         string += "\n"
                         if not servicer.is_installed():
@@ -250,7 +259,7 @@ class LoytraCliActions:
     def list(self):
         for module in self._modules.values():
             string = ""
-            if module.moduler.is_installed():
+            if isinstance(module, LoytraModuleInstance) and module.moduler.is_installed():
                 module.moduler.fetch()
                 string += f"{TCOL.OKGREEN}{TCOL.BOLD}{module.module_name}{TCOL.END} [{module.moduler.get_status()}]"
                 for packager, level, is_group in self._traverse_packagers_for_list(list(module.packages.values())):
@@ -268,21 +277,29 @@ class LoytraCliActions:
         if module_name is None or len(module_name.strip()) == 0:
             running_services = {}
             print(f"{TCOL.FAIL}{TCOL.BOLD}{'Stoping running services:'}{TCOL.END}")
-            for module in self._modules:
-                for service in self._modules[module].services:
-                    servicer = self._modules[module].services[service]
+            for module in self._modules.values():
+                if not isinstance(module, LoytraModuleInstance):
+                    continue
+
+                for service in module.services:
+                    servicer = module.services[service]
                     if servicer.get_active_state().startswith("activ"):
-                        name = f"{module}/{service}"
+                        name = f"{module.module_name}/{service}"
                         running_services[name] = servicer
                         print(f"  {name}")
                         servicer.stop()
+
             print(f"{TCOL.OKBLUE}{TCOL.BOLD}{'Updating repos:'}{TCOL.END}")
-            for module in self._modules:
-                moduler = self._modules[module].moduler
+            for module in self._modules.values():
+                if not isinstance(module, LoytraModuleInstance):
+                    continue
+
+                moduler = module.moduler
                 if moduler.is_installed():
-                    print(f"  {module}")
+                    print(f"  {module.module_name}")
                     moduler.update()
                     moduler.install()
+
             print(f"{TCOL.OKGREEN}{TCOL.BOLD}{'Resuming services:'}{TCOL.END}")
             for service in running_services:
                 print(f"  {service}")
@@ -292,27 +309,31 @@ class LoytraCliActions:
             moduler = self.get_moduler_by_module_name(module_name)
             if moduler is not None:
                 running_services = {}
-                print(f"{TCOL.FAIL}{TCOL.BOLD}{'Stoping running services:'}{TCOL.END}")
-                for service in self._modules[module_name].services:
-                    servicer = self._modules[module_name].services[service]
-                    if servicer.get_active_state().startswith("activ"):
-                        name = f"{module_name}/{service}"
-                        running_services[name] = servicer
-                        print(f"  {name}")
-                        servicer.stop()
-                print(f"{TCOL.OKBLUE}{TCOL.BOLD}{'Updating repo:'}{TCOL.END}")
-                if moduler.is_installed():
-                    print(f"  {module_name}")
-                    moduler.update()
-                print(f"{TCOL.OKGREEN}{TCOL.BOLD}{'Resuming services:'}{TCOL.END}")
-                for service in running_services:
-                    print(f"  {service}")
-                    running_services[service].install()
-                    running_services[service].start()
+                module = self._modules.get(module_name)
+                if module is not None and isinstance(module, LoytraModuleInstance):
+                    print(f"{TCOL.FAIL}{TCOL.BOLD}{'Stoping running services:'}{TCOL.END}")
+                    for service in module.services:
+                        servicer = module.services[service]
+                        if servicer.get_active_state().startswith("activ"):
+                            name = f"{module_name}/{service}"
+                            running_services[name] = servicer
+                            print(f"  {name}")
+                            servicer.stop()
+                    print(f"{TCOL.OKBLUE}{TCOL.BOLD}{'Updating repo:'}{TCOL.END}")
+                    if moduler.is_installed():
+                        print(f"  {module_name}")
+                        moduler.update()
+                    print(f"{TCOL.OKGREEN}{TCOL.BOLD}{'Resuming services:'}{TCOL.END}")
+                    for service in running_services:
+                        print(f"  {service}")
+                        running_services[service].install()
+                        running_services[service].start()
 
     def clean(self):
-        for module in self._modules:
-            moduler = self._modules[module].moduler
-            if moduler.is_installed():
-                moduler.clean()
-                moduler.install()
+        for module in self._modules.values():
+            if isinstance(module, LoytraModuleInstance):
+                moduler = module.moduler
+                if moduler.is_installed():
+                    moduler.clean()
+                    moduler.install()
+

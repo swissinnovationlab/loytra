@@ -1,4 +1,5 @@
-from loytra_modules._module_spec import LoytraModule
+from typing import Optional
+from loytra_modules._module_spec import LoytraModule, LoytraModuleInstance, LoytraModuleReference
 from loytra_modules._util import get_loytra_parent_path
 from loytra_common.utils import get_file_list_in_path, check_if_path_exists
 
@@ -21,22 +22,50 @@ def _get_loytra_module_from_file_path(module_name, file_path):
     import importlib.util
     import sys
     spec = importlib.util.spec_from_file_location(module_name, file_path)
+    if spec is None:
+        return None
+
     foo = importlib.util.module_from_spec(spec)
     sys.modules[module_name] = foo
+    if spec.loader is None:
+        return None
+
     spec.loader.exec_module(foo)
-    return foo.__loytra_module__
+    return foo
 
 
 def _parse_loytra_module_export(loytra_module_export) -> list[LoytraModule]:
     result: list[LoytraModule] = []
-    if isinstance(loytra_module_export, list):
-        for item in loytra_module_export:
-            if isinstance(item, LoytraModule):
-                result.append(item)
-    elif isinstance(loytra_module_export, LoytraModule):
-        result.append(loytra_module_export)
-    else:
-        raise RuntimeError("Invalid module export type!")
+
+    # load module instance
+    module_instance = None
+    try:
+        module_instance = loytra_module_export.__loytra_module__
+    except:
+        module_instance = None
+
+    if module_instance is not None:
+        if isinstance(module_instance, LoytraModuleInstance):
+            result.append(module_instance)
+        else:
+            raise RuntimeError("__loytra_module__ must be of 'LoytraModuleInstance' type!")
+
+    # load module references
+    module_references = None
+    try:
+        module_references = loytra_module_export.__loytra_references__
+    except:
+        module_references = None
+    if module_references is not None:
+        if isinstance(module_references, list):
+            for ref in module_references:
+                if isinstance(ref, LoytraModuleReference):
+                    result.append(ref)
+                else:
+                    raise RuntimeError("__loytra_references must be a list of 'LoytraModuleReference' objects!")
+        else:
+            raise RuntimeError("__loytra_references must be a list of 'LoytraModuleReference' objects!")
+
     return result
 
 
@@ -47,9 +76,12 @@ def _get_loytra_modules() -> list[LoytraModule]:
         if check_if_path_exists(file_path):
             try:
                 module_export = _get_loytra_module_from_file_path(folder_name, file_path)
+                if module_export is None:
+                    print(f"Failed to load module from {folder_name}")
+                    continue
                 loytra_modules.extend(_parse_loytra_module_export(module_export))
             except Exception as e:
-                print(f"Error importing loytra module with {e}")
+                print(f"Error importing loytra module {folder_name} with {e}")
     return loytra_modules
 
 
@@ -65,4 +97,7 @@ def find_loytra_modules() -> dict[str, LoytraModule]:
 def get_loytra_modules_by_folder_name(folder_name):
     file_path = _get_loytra_module_file_path(folder_name)
     module_export = _get_loytra_module_from_file_path(folder_name, file_path)
+    if module_export is None:
+        print(f"Failed to load module from {folder_name}::{file_path}")
+        return []
     return _parse_loytra_module_export(module_export)
