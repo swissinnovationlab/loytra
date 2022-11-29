@@ -1,4 +1,4 @@
-from typing import Optional
+import os.path
 from loytra_modules._module_spec import LoytraModule, LoytraModuleInstance, LoytraModuleReference
 from loytra_modules._util import get_loytra_parent_path
 from loytra_common.utils import get_file_list_in_path, check_if_path_exists
@@ -82,7 +82,21 @@ def _get_loytra_modules() -> list[LoytraModule]:
                 loytra_modules.extend(_parse_loytra_module_export(module_export))
             except Exception as e:
                 print(f"Error importing loytra module {folder_name} with {e}")
-    return loytra_modules
+
+    result: list[LoytraModule] = []
+
+    # take all instances
+    for module in loytra_modules:
+        if isinstance(module, LoytraModuleInstance):
+            result.append(module)
+
+    # filter out references which are already installed
+    for module in loytra_modules:
+        if isinstance(module, LoytraModuleReference):
+            if not os.path.exists(module.moduler.install_location):
+                result.append(module)
+
+    return result
 
 
 def find_loytra_modules() -> dict[str, LoytraModule]:

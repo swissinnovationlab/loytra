@@ -88,9 +88,10 @@ class LoytraCliActions:
                     moduler = Moduler(url=url, hash=hash, github_token=github_token)
                     if (moduler.download_module() and github_token is not None):
                         loytra_modules = get_loytra_modules_by_folder_name(folder_name)
-                        for loytra_module in loytra_modules:
-                            loytra_module.moduler.install_module()
-                            storage_write_value(loytra_module.module_name, github_token)
+                        if len(loytra_modules) > 0:
+                            target_module = loytra_modules[0]
+                            target_module.moduler.install_module()
+                            storage_write_value(target_module.module_name, github_token)
                 except Exception as e:
                     print(f"Install module failed with {e}, {traceback.print_exc()}")
         return None
