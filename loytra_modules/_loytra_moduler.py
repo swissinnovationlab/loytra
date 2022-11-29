@@ -165,6 +165,12 @@ class Moduler:
     def install(self):
         return self._clone_repo(self.url, self.hash, self.github_token) and self._install_pip_editable()
 
+    def download_module(self):
+        return self._clone_repo(self.url, self.hash, self.github_token)
+
+    def install_module(self):
+        return self._install_pip_editable()
+
     def uninstall(self):
         return self._uninstall_pip() and self._remove_repo(self.install_location)
 
