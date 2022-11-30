@@ -66,25 +66,32 @@ class LoytraCliActions:
 
         return packager
 
+    def _input_or_none(self, message):
+        string = input(message)
+        if len(string):
+            return string
+        return None
+
+    def _get_moduler_install_params(self):
+        hash = self._input_or_none("Hash[default]: ")
+        github_token = self._input_or_none("Token[None]: ")
+        return hash, github_token
+
     def install(self, module_name):
         moduler = self.get_moduler_by_module_name(module_name, print_error=False)
         if moduler is not None:
-            return moduler.install()
+            hash, github_token = self._get_moduler_install_params()
+            moduler.github_token = github_token
+            moduler.hash = hash
+            if (moduler.install()):
+                storage_write_value(module_name, github_token)
+                return True
         else:
             if "https://" in module_name:
                 try:
-                    def input_or_none(message):
-                        string = input(message)
-                        if len(string):
-                            return string
-                        return None
-
-                    url = module_name.replace("https://", "")
-                    url = url.removesuffix(".git")
-                    url = url.removesuffix("/")
+                    url = module_name.replace("https://", "").removesuffix(".git").removesuffix("/")
                     folder_name = url.split("/")[-1]
-                    hash = input_or_none("Hash[default]: ")
-                    github_token = input_or_none("Token[None]: ")
+                    hash, github_token = self._get_moduler_install_params()
                     moduler = Moduler(url=url, hash=hash, github_token=github_token)
                     if (moduler.download_module() and github_token is not None):
                         loytra_modules = get_loytra_modules_by_folder_name(folder_name)
@@ -92,9 +99,10 @@ class LoytraCliActions:
                             if isinstance(loytra_module, LoytraModuleInstance):
                                 loytra_module.moduler.install_module()
                                 storage_write_value(loytra_module.module_name, github_token)
+                        return True
                 except Exception as e:
                     print(f"Install module failed with {e}, {traceback.print_exc()}")
-        return None
+        return False
 
     def uninstall(self, module_name):
         moduler = self.get_moduler_by_module_name(module_name)
@@ -337,4 +345,3 @@ class LoytraCliActions:
                 if moduler.is_installed():
                     moduler.clean()
                     moduler.install()
-
