@@ -65,6 +65,7 @@ def get_linux_password():
         password = getpass("Enter [sudo] password: ")
         loytra_linux_password = password
         return loytra_linux_password
+    return password
 
 
 def run_bash_cmd(cmd, logger=None, interaction={}, return_lines=True, return_code=False, cr_as_newline=False):
