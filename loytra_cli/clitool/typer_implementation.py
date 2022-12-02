@@ -10,10 +10,10 @@ app = typer.Typer(help="Loytra")
 
 
 @app.command()
-def install(module_name):
+def install(module_name, hash = None, github_token = None):
     if actions is None:
         return
-    actions.install(module_name)
+    actions.install(module_name, hash, github_token)
 
 
 @app.command()

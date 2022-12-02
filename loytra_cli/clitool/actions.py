@@ -77,10 +77,11 @@ class LoytraCliActions:
         github_token = self._input_or_none("Token[None]: ")
         return hash, github_token
 
-    def install(self, module_name):
+    def install(self, module_name, hash = None, github_token = None):
         moduler = self.get_moduler_by_module_name(module_name, print_error=False)
         if moduler is not None:
-            hash, github_token = self._get_moduler_install_params()
+            if hash == None and github_token == None:
+                hash, github_token = self._get_moduler_install_params()
             moduler.github_token = github_token
             moduler.hash = hash
             if (moduler.install()):
@@ -91,7 +92,8 @@ class LoytraCliActions:
                 try:
                     url = module_name.replace("https://", "").removesuffix(".git").removesuffix("/")
                     folder_name = url.split("/")[-1]
-                    hash, github_token = self._get_moduler_install_params()
+                    if hash == None and github_token == None:
+                        hash, github_token = self._get_moduler_install_params()
                     moduler = Moduler(url=url, hash=hash, github_token=github_token)
                     if (moduler.download_module() and github_token is not None):
                         loytra_modules = get_loytra_modules_by_folder_name(folder_name)
