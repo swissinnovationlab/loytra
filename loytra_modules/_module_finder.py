@@ -20,13 +20,16 @@ def _get_folder_names_in_loytra_parent_path():
 
 def _get_loytra_module_from_file_path(module_name, file_path):
     import importlib.util
-    import sys
     spec = importlib.util.spec_from_file_location(module_name, file_path)
     if spec is None:
         return None
 
     foo = importlib.util.module_from_spec(spec)
-    sys.modules[module_name] = foo
+
+    #TODO: check if this is needed, as it overwrites actual packages
+    #import sys
+    #sys.modules[module_name] = foo
+
     if spec.loader is None:
         return None
 
