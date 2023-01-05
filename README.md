@@ -28,6 +28,8 @@ Run `loytra` in your terminal to start the integrated CLI or use the available c
 `install [HTTPS_GIT_REPO]` - clone and pip install a repo
 ...
 
+## DMCloud API client simulator
+See [API_SIM.md](API_SIM.md)
 
 ## [License](LICENSE)
 This program is free software.
