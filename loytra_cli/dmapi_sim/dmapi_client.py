@@ -9,23 +9,27 @@ from typing import Any
 
 @dc.dataclass(frozen=True, slots=True)
 class ApiConn:
-    host: str = dc.field()
-    port: int = dc.field()
-    use_ssl: bool = dc.field()
-    api_key: str = dc.field()
-    app_key: str = dc.field()
+    host: str
+    port: int
+    use_ssl: bool
+    api_key: str
+    app_key: str
+
 
 @dc.dataclass(frozen=True, slots=True)
 class ApiMethod:
-    topic: str = dc.field()
-    data: Any = dc.field(default=None)
+    topic: str
+    reply: str
+    match: Any
+    data: Any
+    match_break: bool
 
 
 @dc.dataclass(frozen=True, slots=True)
 class ApiSpec:
-    api: ApiConn = dc.field()
-    monitor: list[str] = dc.field(default_factory=lambda: [])
-    methods: list[ApiMethod] = dc.field(default_factory=lambda: [])
+    api: ApiConn
+    monitor: list[str]
+    methods: list[ApiMethod]
 
 
 async def _send(ws, topic, data):
@@ -49,11 +53,40 @@ async def _recv(ws) -> tuple[str, Any]:
 async def _send_app_message(socket, app_key, dev_key, svc_key, topic, data):
     await _send(socket, f"device/app/{app_key}/{dev_key}/{svc_key}/{topic}", data)
 
+def _match(data, match) -> bool:
+    if match is None:
+        return True
+
+    if isinstance(data, list) and isinstance(match, list):
+        all_in = True
+        for match_item in match:
+            if match_item not in data:
+                all_in = False
+                break
+        return all_in
+
+    if isinstance(data, dict) and isinstance(match, dict):
+        all_in = True
+        for match_key, match_value in match.items():
+            if match_key not in data:
+                all_in = False
+                break
+            if data[match_key] != match_value:
+                all_in = False
+                break
+        return all_in
+
+    return data == match
+
+
 async def _handle_app_message(socket, spec: ApiSpec, app_key: str, dev_key: str, svc_key: str, topic: str, data: Any):
     for method in spec.methods:
-        if method.topic == topic:
+        if method.topic == topic and _match(data, method.match):
+            response_topic = method.reply
             response_data = method.data if method.data is not None else data
-            await _send_app_message(socket, app_key, dev_key, svc_key, topic, response_data)
+            await _send_app_message(socket, app_key, dev_key, svc_key, response_topic, response_data)
+            if method.match_break:
+                break
 
 async def _handle_message(socket, spec: ApiSpec, topic: str, data: Any):
     if topic.startswith("device/app/"):
@@ -130,11 +163,23 @@ def _parse_spec(data):
         if method_topic is None or not isinstance(method_topic, str):
             continue
 
+        method_reply = method_spec.get('reply')
+        if method_reply is None or not isinstance(method_reply, str):
+            method_reply = ""
+        method_reply = method_reply.strip()
+        if len(method_reply) == 0:
+            method_reply = method_topic
+
         method_data = method_spec.get('data')
+        method_match = method_spec.get('match')
+        method_break = not(method_spec.get('break') == False)
 
         methods.append(ApiMethod(
             topic=method_topic,
-            data=method_data))
+            reply=method_reply,
+            match=method_match,
+            data=method_data,
+            match_break=method_break))
 
     return ApiSpec(
         api=api_conn,
