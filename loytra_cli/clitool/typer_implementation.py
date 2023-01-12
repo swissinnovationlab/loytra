@@ -3,6 +3,7 @@
 import typer
 from typing import Optional
 from loytra_cli.clitool.actions import LoytraCliActions
+import loytra_cli.dmapi_sim.dmapi_client as dmapi_client
 
 actions: Optional[LoytraCliActions] = None
 
@@ -119,6 +120,12 @@ def clean():
     if actions is None:
         return
     actions.clean()
+
+@app.command()
+def api_sim(definition: Optional[str] = typer.Argument(None)):
+    if definition is None:
+        return
+    dmapi_client.run(definition)
 
 
 @app.callback()
