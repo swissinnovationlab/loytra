@@ -123,10 +123,19 @@ def get_full_path(path):
     return os.path.realpath(os.path.expanduser(path))
 
 
-def write_lines_to_file(lines, filename):
+def _write_lines_to_file(lines, filename):
     filename = get_full_path(filename)
     with open(filename, 'w') as f:
         f.write("\n".join(lines) + "\n")
+
+
+def write_lines_to_file(lines, filename, sudo_required=False):
+    if not sudo_required:
+        _write_lines_to_file(lines, filename)
+    else:
+        tmp = "/dev/shm/loytra_tmp_write_lines_to_file"
+        _write_lines_to_file(lines, tmp)
+        run_bash_cmd(f"sudo mv {tmp} {get_full_path(filename)}")
 
 
 def read_lines_from_file(filename):
@@ -149,9 +158,12 @@ def remove_path(path):
         shutil.rmtree(get_full_path(path))
 
 
-def remove_file(path):
+def remove_file(path, sudo_required=False):
     if check_if_path_exists(path):
-        os.remove(get_full_path(path))
+        if not sudo_required:
+            os.remove(get_full_path(path))
+        else:
+            run_bash_cmd(f"sudo rm {get_full_path(path)}")
 
 
 def get_file_list_in_path(path):

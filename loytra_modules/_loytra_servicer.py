@@ -4,6 +4,7 @@ from loytra_common.utils import *
 
 ANSI_ESCAPE = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
 SYSTEMD_CONFIG_USER_PATH = "~/.config/systemd/user"
+SYSTEMD_CONFIG_SYSTEM_PATH = "/etc/systemd/system"
 SYSTEMD_SERVICE_TEMPLATE = [
     "[Unit]",
     "Description=",
@@ -136,6 +137,7 @@ class Servicer(_ServicerBase):
         self._environment = environment
         self._exec_start_pre = exec_start_pre
         self.logger = log_factory.get(name="svs_servicer", tag="SERVICER")
+        self._unit_path = SYSTEMD_CONFIG_USER_PATH if self._is_user_unit else SYSTEMD_CONFIG_SYSTEM_PATH
 
     @staticmethod
     def _add_field_values_to_file_lines(field, values, file_lines):
@@ -155,16 +157,16 @@ class Servicer(_ServicerBase):
         return file_lines
 
     def _copy_service_file(self):
-        if not check_if_path_exists(SYSTEMD_CONFIG_USER_PATH):
-            create_path(SYSTEMD_CONFIG_USER_PATH)
-        write_lines_to_file(self._generate_systemd_service(), f"{SYSTEMD_CONFIG_USER_PATH}/{self._name}")
+        if not check_if_path_exists(self._unit_path):
+            create_path(self._unit_path)
+        write_lines_to_file(self._generate_systemd_service(), f"{self._unit_path}/{self._name}", sudo_required=(not self._is_user_unit))
 
     def install(self):
         self._copy_service_file()
         self._systemd_deamon_reload()
 
     def uninstall(self):
-        remove_file(f"{SYSTEMD_CONFIG_USER_PATH}/{self._name}")
+        remove_file(f"{self._unit_path}/{self._name}", sudo_required=(not self._is_user_unit))
         self._systemd_deamon_reload()
 
 
@@ -183,8 +185,9 @@ if __name__ == "__main__":
     import readline
     import rlcompleter
 
-    # servicer = Servicer(name="testing_date", exec_start="/usr/bin/date", description="Testing date")
-    servicer = DynamicServicer(name="openvpn-client@dmp.service", is_user_unit=False)
+    # servicer = Servicer(name="testing_date.service", exec_start="/usr/bin/date", description="Testing date")
+    # servicer = DynamicServicer(name="openvpn-client@dmp.service", is_user_unit=False)
+    servicer = Servicer(name="testing_date.service", exec_start="/usr/bin/date", description="Testing date", is_user_unit=False)
 
     readline.parse_and_bind("tab: complete")
     code.interact(local=locals())
