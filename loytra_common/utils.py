@@ -48,6 +48,8 @@ def millis_passed(timestamp):
 
 
 loytra_linux_password = None
+
+
 def get_linux_password_noninteractive():
     env_password = os.getenv('LOYTRA_LINUX_PASSWORD')
     if loytra_linux_password is not None:
@@ -68,8 +70,9 @@ def get_linux_password():
     return password
 
 
-def run_bash_cmd(cmd, logger=None, interaction={}, return_lines=True, return_code=False, cr_as_newline=False):
+def run_bash_cmd(cmd, logger=None, interaction={}, return_lines=True, return_code=False, cr_as_newline=False, remove_empty_lines=False):
     if logger: logger(f"CMD: {cmd}")
+    if "sudo " in cmd: interaction["sudo"] = get_linux_password()
     master_fd, slave_fd = pty.openpty()
     line = ""
     lines = []
@@ -94,7 +97,7 @@ def run_bash_cmd(cmd, logger=None, interaction={}, return_lines=True, return_cod
                 for key in interaction:
                     if key in line:
                         if logger: logger(f"PMT: {line}")
-                        sleep(1)
+                        # sleep(1) #TODO: if stops working check this
                         os.write(master_fd, ("%s" % (interaction[key])).encode())
                         os.write(master_fd, "\r\n".encode())
                         line = ""
@@ -104,6 +107,9 @@ def run_bash_cmd(cmd, logger=None, interaction={}, return_lines=True, return_cod
 
     os.close(master_fd)
     os.close(slave_fd)
+
+    if remove_empty_lines:
+        lines = list(filter(lambda l: len(l) > 0, lines))
 
     if return_lines and return_code:
         return lines, p.returncode
@@ -158,4 +164,3 @@ def get_user():
 
 def get_path_of_current_file(f):
     return str(Path(f).resolve().parent)
-

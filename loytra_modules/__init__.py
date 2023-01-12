@@ -2,7 +2,7 @@ from loytra_modules._module_spec import LoytraModuleReference, LoytraModuleInsta
 
 from loytra_modules._loytra_moduler import Moduler
 from loytra_modules._loytra_packager import Packager, PackagerGroup, PackagerUserGroup, PackagerExecToPath, PackagerFileCreator, PackagerUdevRule, PackagerRepoPacman, PackagerRepoApt, PackagerRepo, MultiPackager, PackagerPip
-from loytra_modules._loytra_servicer import Servicer, PythonServicer
+from loytra_modules._loytra_servicer import Servicer, DynamicServicer, PythonServicer
 
 from loytra_modules._service_runner import get_service_run_command
 from loytra_modules._util import get_loytra_parent_path
@@ -28,6 +28,7 @@ __all__ = [
         'PackagerPip',
 
         'Servicer',
+        'DynamicServicer',
         'PythonServicer',
 
         'get_service_run_command',
