@@ -153,9 +153,12 @@ def create_path(path):
     os.makedirs(get_full_path(path), exist_ok=True)
 
 
-def remove_path(path):
+def remove_path(path, sudo_required=False):
     if check_if_path_exists(path):
-        shutil.rmtree(get_full_path(path))
+        if not sudo_required:
+            shutil.rmtree(get_full_path(path))
+        else:
+            run_bash_cmd(f"sudo rm {get_full_path(path)} -r")
 
 
 def remove_file(path, sudo_required=False):
