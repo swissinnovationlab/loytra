@@ -171,8 +171,10 @@ class Servicer(_ServicerBase):
 
 
 class DynamicServicer(_ServicerBase):
-    def __init__(self, name, is_user_unit=True):
+    def __init__(self, name, is_user_unit=True, is_installed=None):
         super().__init__(name=name, is_user_unit=is_user_unit, is_dynamic=True)
+        if is_installed is not None:
+            self.is_installed = is_installed
 
 
 class PythonServicer(Servicer):
