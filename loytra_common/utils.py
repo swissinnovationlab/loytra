@@ -123,13 +123,14 @@ def get_full_path(path):
     return os.path.realpath(os.path.expanduser(path))
 
 
-def _write_lines_to_file(lines, filename):
+def _write_lines_to_file(lines, filename, newline_at_end = True):
     filename = get_full_path(filename)
+    sufix = ("", "\n")[newline_at_end]
     with open(filename, 'w') as f:
-        f.write("\n".join(lines) + "\n")
+        f.write("\n".join(lines) + sufix)
 
 
-def write_lines_to_file(lines, filename, sudo_required=False):
+def write_lines_to_file(lines, filename, sudo_required=False, newline_at_end = True):
     if not sudo_required:
         _write_lines_to_file(lines, filename)
     else:
