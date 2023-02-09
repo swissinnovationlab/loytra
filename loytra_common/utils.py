@@ -123,19 +123,19 @@ def get_full_path(path):
     return os.path.realpath(os.path.expanduser(path))
 
 
-def _write_lines_to_file(lines, filename, newline_at_end = True):
+def _write_lines_to_file(lines, filename, newline_at_end=True):
     filename = get_full_path(filename)
     sufix = ("", "\n")[newline_at_end]
     with open(filename, 'w') as f:
         f.write("\n".join(lines) + sufix)
 
 
-def write_lines_to_file(lines, filename, sudo_required=False, newline_at_end = True):
+def write_lines_to_file(lines, filename, sudo_required=False, newline_at_end=True):
     if not sudo_required:
-        _write_lines_to_file(lines, filename)
+        _write_lines_to_file(lines, filename, newline_at_end)
     else:
         tmp = "/dev/shm/loytra_tmp_write_lines_to_file"
-        _write_lines_to_file(lines, tmp)
+        _write_lines_to_file(lines, tmp, newline_at_end)
         run_bash_cmd(f"sudo mv {tmp} {get_full_path(filename)}")
 
 
