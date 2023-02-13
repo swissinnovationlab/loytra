@@ -29,7 +29,10 @@ setuptools.setup(
 
         # cli libs
         'typer',
-        'gitpython'
+        'gitpython',
+
+        # websockets
+        'websockets'
     ],
 )
 
