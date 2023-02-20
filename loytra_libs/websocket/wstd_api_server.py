@@ -88,20 +88,17 @@ class WSTDApiServer(WSTDServerBase):
             response_cid: Optional[str] = None if response.broadcast else sender_cid
             await self.send_message(response_topic, response.data, response_cid, response.intent_filter)
 
-    async def _on_message_received(self, cid: str, topic: str, data: Any):
+    async def _on_message_received(self, client_id: str, topic: str, data: Any, _: dict[str, Any]):
         # call bound methods
         handled = False
         for topic_prefix, func in self._methods.items():
             if topic.startswith(topic_prefix):
-                response = await func(cid, topic, data)
-                await self._check_auto_response(cid, topic, response)
+                response = await func(client_id, topic, data)
+                await self._check_auto_response(client_id, topic, response)
                 handled = True
 
         # call unhandled message listener
         if not handled and self._on_receive_unhandled is not None:
-            response = await self._on_receive_unhandled(cid, topic, data)
-            await self._check_auto_response(cid, topic, response)
-
-    def on_destroy(self):
-        pass
+            response = await self._on_receive_unhandled(client_id, topic, data)
+            await self._check_auto_response(client_id, topic, response)
 

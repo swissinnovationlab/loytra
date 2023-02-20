@@ -72,6 +72,9 @@ class WSTDServerBase:
         self._wsrefs: dict[str, _WebsocketReference] = {}
 
     # base
+    async def _on_run_websocket_server(self):
+        pass
+
     async def _on_client_connected(self, client_id: str):
         pass
 
@@ -87,10 +90,10 @@ class WSTDServerBase:
     async def _on_tunnel_controller_disconnected(self, client_id: str):
         pass
 
-    async def _on_message_received(self, client_id: str, topic: str, data: Any):
+    async def _on_message_received(self, client_id: str, topic: str, data: Any, message: dict[str, Any]):
         pass
 
-    def on_destroy(self):
+    def _on_destroy(self):
         pass
 
     # impl
@@ -133,11 +136,17 @@ class WSTDServerBase:
             topic: str,
             data: Any,
             tunnel_id: Optional[str] = None,
-            client_id: Optional[str] = None):
+            client_id: Optional[str] = None,
+            extra: Optional[dict[str, Any]] = None):
 
         tunnel_id = tunnel_id if wsref.is_tunnel and tunnel_id != _TUNNEL_NONE else None
 
-        msg_data = { "topic": topic, "data": data }
+        msg_data = {}
+        if extra is not None:
+            msg_data.update(extra)
+
+        msg_data["topic"] = topic
+        msg_data["data"] = data
         if tunnel_id is not None:
             msg_data[_FIELD_TUNNEL_ID] = tunnel_id
 
@@ -156,7 +165,7 @@ class WSTDServerBase:
             self._logger.error(f"Error during SEND on {wsref.socket_id} to {client_id}!", exc_info=True)
             return False
 
-    async def send_tunnel_message(self, topic: str, data: Any, target: WebsocketTunnelTarget) -> bool:
+    async def send_tunnel_message(self, topic: str, data: Any, target: WebsocketTunnelTarget, extra: Optional[dict[str, Any]] = None) -> bool:
         results: list[bool] = []
         for wsref in self._wsrefs.values():
             if wsref.is_tunnel:
@@ -167,29 +176,29 @@ class WSTDServerBase:
                     tunnel_id = _TUNNEL_CONTROLLER
                 elif target == WebsocketTunnelTarget.CLIENTS:
                     tunnel_id = _TUNNEL_CLIENTS
-                results.append(await self._send_socket_message(wsref, topic, data, tunnel_id))
+                results.append(await self._send_socket_message(wsref, topic, data, tunnel_id, extra=extra))
 
         if len(results) == 0:
             return False
         else:
             return all(results)
 
-    async def send_client_message(self, topic: str, data: Any, client_id: str) -> bool:
+    async def send_client_message(self, topic: str, data: Any, client_id: str, extra: Optional[dict[str, Any]] = None) -> bool:
         client = self._clients.get(client_id)
         if client is None:
             return False
         wsref = self._wsrefs.get(client.socket_id)
         if wsref is None:
             return False
-        return await self._send_socket_message(wsref, topic, data, client.tunnel_id, client_id=client_id)
+        return await self._send_socket_message(wsref, topic, data, client.tunnel_id, client_id=client_id, extra=extra)
 
-    async def send_broadcast_message(self, topic: str, data: Any, intent_filter: Optional[str] = None):
+    async def send_broadcast_message(self, topic: str, data: Any, intent_filter: Optional[str] = None, extra: Optional[dict[str, Any]] = None):
         for wsref in self._wsrefs.values():
             if not wsref.is_tunnel:
                 for client_id in wsref.clients.values():
                     client = self._clients.get(client_id)
                     if client is not None and (intent_filter is None or intent_filter in client.intent):
-                        await self._send_socket_message(wsref, topic, data, client_id=client.client_id)
+                        await self._send_socket_message(wsref, topic, data, client_id=client.client_id, extra=extra)
             else:
                 send_tunnel_broadcast = True
                 target_clients: list[_WebsocketClient] = []
@@ -203,16 +212,16 @@ class WSTDServerBase:
                                 send_tunnel_broadcast = False
 
                 if send_tunnel_broadcast:
-                    await self._send_socket_message(wsref, topic, data, tunnel_id=_TUNNEL_CLIENTS)
+                    await self._send_socket_message(wsref, topic, data, tunnel_id=_TUNNEL_CLIENTS, extra=extra)
                 else:
                     for client in target_clients:
-                        await self._send_socket_message(wsref, topic, data, tunnel_id=client.tunnel_id, client_id=client.client_id)
+                        await self._send_socket_message(wsref, topic, data, tunnel_id=client.tunnel_id, client_id=client.client_id, extra=extra)
 
-    async def send_message(self, topic: str, data: Any, client_id: Optional[str], intent_filter: Optional[str] = None):
+    async def send_message(self, topic: str, data: Any, client_id: Optional[str], intent_filter: Optional[str] = None, extra: Optional[dict[str, Any]] = None):
         if client_id is not None and len(client_id) > 0:
-            await self.send_client_message(topic, data, client_id)
+            await self.send_client_message(topic, data, client_id, extra=extra)
         else:
-            await self.send_broadcast_message(topic, data, intent_filter)
+            await self.send_broadcast_message(topic, data, intent_filter, extra=extra)
 
     async def _authorize_client(self, socket_id: str, tunnel_id: str, data: Any) -> bool:
         # check if is tunnel controller
@@ -357,13 +366,12 @@ class WSTDServerBase:
                             continue
 
                         self._debug_log(f"[RECV on [{socket_id}] from {client_id}] {topic}")
-                        task = asyncio.get_running_loop().create_task(self._on_message_received(client_id, topic, data))
+                        task = asyncio.get_running_loop().create_task(self._on_message_received(client_id, topic, data, parsed))
                         tasks.add(task)
                         task.add_done_callback(tasks.discard)
 
         except:
             self._logger.error(f"Unexpected socket [{socket_id}] error in handler loop!", exc_info=True)
-
 
         # socket closed - get all clients and remove socket reference
         disconnect_clients: list[str] = list(self._wsrefs[socket_id].clients.values())
@@ -393,12 +401,13 @@ class WSTDServerBase:
         self._logger.info(f"Socket [{socket_id}] disconnected")
 
     async def run_server(self):
+        await self._on_run_websocket_server()
         async with websockets.serve(self._handler, '', int(self._port)):
             self._logger.info(f"Started on port: {self._port}")
             await asyncio.Future()
 
     def destroy(self):
-        self.on_destroy()
+        self._on_destroy()
         for _, wsref in self._wsrefs.items():
             wsref.socket.close()
         self._wsrefs.clear()
