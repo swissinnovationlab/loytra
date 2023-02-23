@@ -71,6 +71,10 @@ class WSTDServerBase:
         self._clients: dict[str, _WebsocketClient] = {}
         self._wsrefs: dict[str, _WebsocketReference] = {}
 
+    # util
+    def _is_tunnel_controller(self, tunnel_id: str) -> bool:
+        return bool(tunnel_id == _TUNNEL_CONTROLLER)
+
     # base
     async def _on_run_websocket_server(self):
         pass
@@ -90,7 +94,7 @@ class WSTDServerBase:
     async def _on_tunnel_controller_disconnected(self, client_id: str):
         pass
 
-    async def _on_message_received(self, client_id: str, topic: str, data: Any, message: dict[str, Any]):
+    async def _on_message_received(self, client_id: str, topic: str, data: Any, message: dict[str, Any], client_is_tunnel_controller: bool):
         pass
 
     def _on_destroy(self):
@@ -225,7 +229,7 @@ class WSTDServerBase:
 
     async def _authorize_client(self, socket_id: str, tunnel_id: str, data: Any) -> bool:
         # check if is tunnel controller
-        is_tunnel_controller = bool(tunnel_id == _TUNNEL_CONTROLLER)
+        is_tunnel_controller = self._is_tunnel_controller(tunnel_id)
 
         # validate direct or tunnelled client and update wsref is_tunnel flag
         wsref = self._wsrefs[socket_id]
@@ -296,7 +300,7 @@ class WSTDServerBase:
 
     async def _deauthorize_client(self, socket_id: str, tunnel_id: str) -> bool:
         # check if is tunnel controller
-        is_tunnel_controller = bool(tunnel_id == _TUNNEL_CONTROLLER)
+        is_tunnel_controller = self._is_tunnel_controller(tunnel_id)
         client_id = self._wsrefs[socket_id].clients.get(tunnel_id)
         if client_id is not None:
             del self._wsrefs[socket_id].clients[tunnel_id]
@@ -366,7 +370,8 @@ class WSTDServerBase:
                             continue
 
                         self._debug_log(f"[RECV on [{socket_id}] from {client_id}] {topic}")
-                        task = asyncio.get_running_loop().create_task(self._on_message_received(client_id, topic, data, parsed))
+                        is_tunnel_controller = self._is_tunnel_controller(tunnel_id)
+                        task = asyncio.get_running_loop().create_task(self._on_message_received(client_id, topic, data, parsed, is_tunnel_controller))
                         tasks.add(task)
                         task.add_done_callback(tasks.discard)
 
@@ -390,7 +395,7 @@ class WSTDServerBase:
             for client_id in disconnect_clients:
                 client = self._clients.get(client_id)
                 if client is not None:
-                    is_tunnel_controller = bool(client.tunnel_id == _TUNNEL_CONTROLLER)
+                    is_tunnel_controller = self._is_tunnel_controller(client.tunnel_id)
                     del self._clients[client_id]
                     self._logger.info(f"Client [{client_id}] on socket [{socket_id}] disconnected!")
                     if is_tunnel_controller:

@@ -88,7 +88,7 @@ class WSTDApiServer(WSTDServerBase):
             response_cid: Optional[str] = None if response.broadcast else sender_cid
             await self.send_message(response_topic, response.data, response_cid, response.intent_filter)
 
-    async def _on_message_received(self, client_id: str, topic: str, data: Any, _: dict[str, Any]):
+    async def _on_message_received(self, client_id: str, topic: str, data: Any, message: dict[str, Any], client_is_tunnel_controller: bool):
         # call bound methods
         handled = False
         for topic_prefix, func in self._methods.items():
