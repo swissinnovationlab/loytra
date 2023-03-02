@@ -181,11 +181,7 @@ class WSTDServerBase:
                 elif target == WebsocketTunnelTarget.CLIENTS:
                     tunnel_id = _TUNNEL_CLIENTS
                 results.append(await self._send_socket_message(wsref, topic, data, tunnel_id, extra=extra))
-
-        if len(results) == 0:
-            return False
-        else:
-            return all(results)
+        return len(results) > 0 and all(results)
 
     async def send_client_message(self, topic: str, data: Any, client_id: str, extra: Optional[dict[str, Any]] = None) -> bool:
         client = self._clients.get(client_id)
