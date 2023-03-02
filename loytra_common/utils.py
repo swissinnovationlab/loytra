@@ -180,3 +180,8 @@ def get_user():
 
 def get_path_of_current_file(f):
     return str(Path(f).resolve().parent)
+
+
+def create_dir_if_not_found(path):
+    if not os.path.exists(get_full_path(path)):
+        os.makedirs(get_full_path(path))
