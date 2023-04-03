@@ -6,10 +6,11 @@ from loytra_modules._loytra_servicer import Servicer
 
 
 class LoytraModule(metaclass=abc.ABCMeta):
-    def __init__(self, module_name: str, moduler: Moduler, sort_index: int = -1):
+    def __init__(self, module_name: str, moduler: Moduler, sort_index: int = -1, deprecated_replaced_by: Optional[str] = None):
         self.module_name = module_name
         self.moduler = moduler
         self.sort_index = sort_index
+        self.deprecated_replaced_by = deprecated_replaced_by
 
     @abc.abstractmethod
     def is_reference(self):
@@ -17,19 +18,19 @@ class LoytraModule(metaclass=abc.ABCMeta):
 
 
 class LoytraModuleReference(LoytraModule):
-    def __init__(self, module_name: str, moduler: Moduler, sort_index: int = -1):
-        super().__init__(module_name, moduler, sort_index)
+    def __init__(self, module_name: str, moduler: Moduler, sort_index: int = -1, deprecated_replaced_by: Optional[str] = None):
+        super().__init__(module_name, moduler, sort_index, deprecated_replaced_by)
 
     def is_reference(self):
         return True
 
 
 class LoytraModuleInstance(LoytraModule):
-    def __init__(self, module_name: str, moduler: Moduler, sort_index: int = -1,
+    def __init__(self, module_name: str, moduler: Moduler, sort_index: int = -1, deprecated_replaced_by: Optional[str] = None,
             services: Optional[dict[str, Servicer]] = None,
             packages: Optional[list[Packager]] = None):
 
-        super().__init__(module_name, moduler, sort_index)
+        super().__init__(module_name, moduler, sort_index, deprecated_replaced_by)
 
         self.services = services if services is not None else {}
         packages_list = packages if packages is not None else []

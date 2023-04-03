@@ -270,9 +270,16 @@ class LoytraCliActions:
     def list(self):
         for module in self._modules.values():
             string = ""
+            instance_status_suffix = ""
+            if module.deprecated_replaced_by is not None:
+                instance_status_suffix += f" [{TCOL.FAIL}{TCOL.BOLD}DEPRECATED{TCOL.END}"
+                if len(module.deprecated_replaced_by) > 0:
+                    instance_status_suffix += f" by {TCOL.WARNING}{TCOL.BOLD}{module.deprecated_replaced_by}{TCOL.END}"
+                instance_status_suffix += "]"
+
             if isinstance(module, LoytraModuleInstance) and module.moduler.is_installed():
                 module.moduler.fetch()
-                string += f"{TCOL.OKGREEN}{TCOL.BOLD}{module.module_name}{TCOL.END} [{module.moduler.get_status()}]"
+                string += f"{TCOL.OKGREEN}{TCOL.BOLD}{module.module_name}{TCOL.END} [{module.moduler.get_status()}]{instance_status_suffix}"
                 for packager, level, is_group in self._traverse_packagers_for_list(list(module.packages.values())):
                     string += "\n"
                     padd = "  " + ("  " * level)
@@ -282,6 +289,7 @@ class LoytraCliActions:
                         string += f"{padd}{packager.name} [{packager.get_status()}]"
             else:
                 string += f"{TCOL.FAIL}{TCOL.BOLD}{module.module_name}{TCOL.END}"
+
             if len(string): print(string)
 
     def update(self, module_name=None):
