@@ -49,6 +49,7 @@ class WSTDServerBase:
     def __init__(self,
             debug_mode: bool,
             port: int,
+            allow_remote_connect: bool = True,
             transport: WebsocketMessageTransport = WebsocketMessageTransport.MSGPACK):
 
         if transport == WebsocketMessageTransport.MSGPACK:
@@ -63,6 +64,7 @@ class WSTDServerBase:
             raise RuntimeError("Invalid transport specified!")
 
         self._debug_mode = debug_mode
+        self._host = '' if allow_remote_connect else '127.0.0.1'
         self._port = port
         self._transport = transport
 
@@ -403,7 +405,7 @@ class WSTDServerBase:
 
     async def run_server(self):
         await self._on_run_websocket_server()
-        async with websockets.serve(self._handler, '', int(self._port)):
+        async with websockets.serve(self._handler, self._host, int(self._port)):
             self._logger.info(f"Started on port: {self._port}")
             await asyncio.Future()
 

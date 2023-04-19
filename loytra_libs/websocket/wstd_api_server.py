@@ -19,6 +19,7 @@ class WSTDApiServer(WSTDServerBase):
     def __init__(self,
             debug_mode: bool,
             port: int,
+            allow_remote_connect: bool = True,
             transport: WebsocketMessageTransport = WebsocketMessageTransport.MSGPACK,
             on_client_connected: Optional[Callable[['WSTDApiServer', str], Awaitable[Any]]] = None,
             on_client_authorized: Optional[Callable[['WSTDApiServer', str, list[str], Any], Awaitable[Any]]] = None,
@@ -27,7 +28,7 @@ class WSTDApiServer(WSTDServerBase):
             on_tunnel_controller_disconnected: Optional[Callable[['WSTDApiServer', str], Awaitable[Any]]] = None,
             on_receive_unhandled: Optional[Callable[[str, str, Any], Awaitable[Any]]] = None):
 
-        super().__init__(debug_mode, port, transport)
+        super().__init__(debug_mode, port, allow_remote_connect, transport)
 
         self._on_client_connected_listener = on_client_connected
         self._on_client_authorized_listener = on_client_authorized
