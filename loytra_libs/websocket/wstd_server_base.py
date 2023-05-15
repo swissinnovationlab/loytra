@@ -1,4 +1,4 @@
-import asyncio
+mport asyncio
 import secrets
 import websockets
 from enum import Enum
@@ -220,6 +220,7 @@ class WSTDServerBase:
                         await self._send_socket_message(wsref, topic, data, tunnel_id=client.tunnel_id, client_id=client.client_id, extra=extra)
 
     async def send_message(self, topic: str, data: Any, client_id: Optional[str], intent_filter: Optional[str] = None, extra: Optional[dict[str, Any]] = None):
+        client_id = client_id if isinstance(client_id, str) else None
         if client_id is not None and len(client_id) > 0:
             await self.send_client_message(topic, data, client_id, extra=extra)
         else:
