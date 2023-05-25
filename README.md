@@ -9,7 +9,7 @@ All repos controlled by `loytra` have to be located in the same parent directory
 
 ## Setup
 ### Installation
-Make sure that you have `python` and `pip` installed.
+Make sure that you have `python`, `python-pip` and `base-devel` (or your distro's equivalent) installed.
 Clone this repo and install `loytra` and its' dependencies using `pip install -e ./` in this repos directory.
 The `loytra` CLI app should now be available in your $PATH.
 
