@@ -114,11 +114,11 @@ class WSTDServerBase:
                 result.append((client_id, client.intent, client.info))
         return result
 
-    def get_connected_tunnel_controllers(self) -> list[str]:
-        result: list[str] = []
+    def get_connected_tunnel_controllers(self) -> list[tuple[str, list[str], Any]]:
+        result: list[tuple[str, list[str], Any]] = []
         for client_id, client in self._clients.items():
             if client.tunnel_id == _TUNNEL_CONTROLLER:
-                result.append(client_id)
+                result.append((client_id, client.intent, client.info))
         return result
 
     def get_client(self, client_id: str) -> Optional[tuple[list[str], Any]]:
