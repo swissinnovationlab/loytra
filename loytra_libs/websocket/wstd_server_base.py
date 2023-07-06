@@ -287,7 +287,7 @@ class WSTDServerBase:
 
         # log client authorized
         if is_tunnel_controller:
-            self._logger.info(f"Tunnel controller client [{client_id}] authorized on socket [{socket_id}]!")
+            self._logger.info(f"Tunnel controller client [{client_id}] authorized on socket [{socket_id}] with info [{info}]!")
         else:
             self._logger.info(f"Client [{client_id}] on socket [{socket_id}] authorized as {intent}!")
 
