@@ -6,6 +6,7 @@ from loytra_cli.clitool.actions import LoytraCliActions
 import loytra_cli.dmapi_sim.dmapi_client as dmapi_client
 from loytra_common.options import options
 from loytra_common import log_factory
+from loytra_common.utils import TCOL
 
 
 
@@ -107,6 +108,15 @@ def status():
 
 @app.command()
 def list():
+    """
+    GIT flags:\n
+        - B repo is behind\n
+        - A repo is ahead\n
+        - M repo is modified\n
+        - S repo has changes to be committed\n
+        - U repo has untracked files\n
+        - F fetch failed\n
+    """
     if actions is None:
         return
     actions.list()
