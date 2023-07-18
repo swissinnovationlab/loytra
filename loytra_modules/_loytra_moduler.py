@@ -63,7 +63,7 @@ class Moduler:
         else:
             return self._get_git_sha(repo)
 
-    def _get_repo_status(self, install_location, request_version=None):
+    def _get_repo_status(self, install_location, request_version=None, fetch_status=True):
         if not self._is_repo(install_location):
             return None
         status = ""
@@ -87,6 +87,7 @@ class Moduler:
         status += ("", TCOL.OKBLUE + "M" + TCOL.END)[is_git_repo_modified]
         status += ("", TCOL.OKBLUE + "S" + TCOL.END)[is_git_repo_with_changes_to_be_committed]
         status += ("", TCOL.OKBLUE + "U" + TCOL.END)[is_git_repo_with_untracked_files]
+        status += ("", TCOL.FAIL + "F" + TCOL.END)[not fetch_status]
         return status.rstrip()
 
     def _get_package_from_url(self, url):
@@ -177,8 +178,8 @@ class Moduler:
     def _get_local_version(self):
         return self._get_repo_local_version(Repo(self.install_location))
 
-    def get_status(self):
-        repo_status = self._get_repo_status(self.install_location, self.hash)
+    def get_status(self, fetch_status=True):
+        repo_status = self._get_repo_status(self.install_location, self.hash, fetch_status=fetch_status)
         pip_status = self._get_status_pip()
         if pip_status is None:
             return f"{repo_status}"

@@ -278,8 +278,8 @@ class LoytraCliActions:
                 instance_status_suffix += "]"
 
             if isinstance(module, LoytraModuleInstance) and module.moduler.is_installed():
-                module.moduler.fetch()
-                string += f"{TCOL.OKGREEN}{TCOL.BOLD}{module.module_name}{TCOL.END} [{module.moduler.get_status()}]{instance_status_suffix}"
+                fetch_status = module.moduler.fetch()
+                string += f"{TCOL.OKGREEN}{TCOL.BOLD}{module.module_name}{TCOL.END} [{module.moduler.get_status(fetch_status=fetch_status)}]{instance_status_suffix}"
                 for packager, level, is_group in self._traverse_packagers_for_list(list(module.packages.values())):
                     string += "\n"
                     padd = "  " + ("  " * level)
