@@ -4,14 +4,18 @@ import typer
 from typing import Optional
 from loytra_cli.clitool.actions import LoytraCliActions
 import loytra_cli.dmapi_sim.dmapi_client as dmapi_client
+from loytra_common.options import options
+from loytra_common import log_factory
+
+
 
 actions: Optional[LoytraCliActions] = None
-
 app = typer.Typer(help="Loytra")
 
 
 @app.command()
 def install(module_name, hash = None, github_token = None):
+    
     if actions is None:
         return
     actions.install(module_name, hash, github_token)
@@ -129,7 +133,8 @@ def api_sim(definition: Optional[str] = typer.Argument(None)):
 
 
 @app.callback()
-def main():
+def main(verbose: bool = False):
     global actions
+    options.verbose = verbose
     if actions is None:
         actions = LoytraCliActions()

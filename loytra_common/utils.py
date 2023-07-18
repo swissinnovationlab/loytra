@@ -9,7 +9,12 @@ from time import time, sleep
 import asyncio
 import getpass
 from pathlib import Path
+from loytra_common.options import options
+from loytra_common import log_factory
+import re
 
+
+local_logger = log_factory.get(name=f"lc_utils", tag=f"LC_UTILS")
 
 async def async_parallel_loop(items, func):
     tasks = []
@@ -71,6 +76,8 @@ def get_linux_password():
 
 
 def run_bash_cmd(cmd, logger=None, interaction={}, return_lines=True, return_code=False, cr_as_newline=False, remove_empty_lines=False):
+    if options.verbose:
+        logger = local_logger.debug
     if logger: logger(f"CMD: {cmd}")
     if "sudo " in cmd: interaction["sudo"] = get_linux_password()
     master_fd, slave_fd = pty.openpty()
@@ -89,7 +96,7 @@ def run_bash_cmd(cmd, logger=None, interaction={}, return_lines=True, return_cod
                             if line and line not in interaction.values():
                                 clean = line.strip().split('\r')[-1]
                                 lines.append(clean)
-                                if logger: logger(f"STD: {line}")
+                                if logger: logger(f"STD: {repr(line)}")
                             line = ""
                         else:
                             line += c
@@ -112,10 +119,13 @@ def run_bash_cmd(cmd, logger=None, interaction={}, return_lines=True, return_cod
         lines = list(filter(lambda l: len(l) > 0, lines))
 
     if return_lines and return_code:
+        if logger: logger(f"RET: L[{lines}], C[{p.returncode}]")
         return lines, p.returncode
     elif return_code:
+        if logger: logger(f"RET: C[{p.returncode}]")
         return p.returncode
     else:
+        if logger: logger(f"RET: L{lines}")
         return lines
 
 

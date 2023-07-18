@@ -102,7 +102,7 @@ class Moduler:
             return True
         github_token_str = ["", f"{github_token}@"][github_token != None]
         cmd = f"git clone https://{github_token_str}{url} {install_location}"
-        if run_bash_cmd(cmd, self.logger.debug, return_lines=False, return_code=True) == 0:
+        if run_bash_cmd(cmd, return_lines=False, return_code=True) == 0:
             if request_version != None:
                 repo = Repo(self._get_install_location_from_url(url))
                 repo_hash = self._get_repo_local_version(repo)
@@ -119,7 +119,7 @@ class Moduler:
         self.logger.info(f"checkout_repo {github_token != None}@{install_location}@{request_version}")
         cmd = f"git -C {install_location} checkout {request_version}"
         interaction = self._get_github_token_interaction(github_token)
-        return run_bash_cmd(cmd, self.logger.debug, interaction=interaction, return_lines=False, return_code=True) == 0
+        return run_bash_cmd(cmd, interaction=interaction, return_lines=False, return_code=True) == 0
 
     def _clean_repo(self, install_location):
         self.logger.info(f"clean_repo {install_location}")
@@ -136,7 +136,7 @@ class Moduler:
         self.logger.info(f"pull_repo {github_token != None}@{install_location}")
         cmd = f"git -C {install_location} pull"
         interaction = self._get_github_token_interaction(github_token)
-        run_bash_cmd(cmd, self.logger.debug, interaction=interaction)
+        run_bash_cmd(cmd, interaction=interaction)
 
     def _update_repo(self, install_location, request_version=None, github_token=None):
         self.logger.info(f"update_repo {github_token != None}@{install_location}@{request_version}")
@@ -193,7 +193,7 @@ class Moduler:
             return True
         # cmd = f"pip install -e {self.install_location}"
         cmd = f"pip install --prefix=$(python -m site --user-base) --editable {self.install_location}"
-        return run_bash_cmd(cmd, self.logger.debug, return_lines=False, return_code=True) == 0
+        return run_bash_cmd(cmd, return_lines=False, return_code=True) == 0
 
     def update(self, request_version=None):
         return self._update_repo(self.install_location, request_version, self.github_token) and self._install_pip_editable()
@@ -215,7 +215,7 @@ class Moduler:
             return True
         cmd = f"pip uninstall {self.package}"
         interaction = {"Proceed (": "y"}
-        return run_bash_cmd(cmd, self.logger.debug, interaction=interaction, return_lines=False, return_code=True) == 0
+        return run_bash_cmd(cmd, interaction=interaction, return_lines=False, return_code=True) == 0
 
     def _get_status_pip(self):
         if self.module == None:

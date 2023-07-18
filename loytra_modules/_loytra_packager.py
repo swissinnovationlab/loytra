@@ -56,17 +56,13 @@ class PackagerUserGroup(Packager):
 
     def sync(self):
         cmd = f"sudo gpasswd -a $USER {self.group}"
-        sudo_password = get_linux_password()
-        interaction = {"[sudo]": sudo_password} if sudo_password is not None else {}
-        ret_code = run_bash_cmd(cmd, interaction=interaction, return_lines=False, return_code=True)
+        ret_code = run_bash_cmd(cmd, return_lines=False, return_code=True)
         self.logger.info("Reboot or logout for changes to take efect!")
         return ret_code == 0
 
     def unsync(self):
         cmd = f"sudo gpasswd -d $USER {self.group}"
-        sudo_password = get_linux_password()
-        interaction = {"[sudo]": sudo_password} if sudo_password is not None else {}
-        ret_code = run_bash_cmd(cmd, interaction=interaction, return_lines=False, return_code=True)
+        ret_code = run_bash_cmd(cmd, return_lines=False, return_code=True)
         self.logger.info("Reboot or logout for changes to take efect!")
         return ret_code == 0
 
@@ -245,16 +241,15 @@ class PackagerRepoPacman(Packager):
             "are in conflict. Remove": "y",
         }
         for cmd in cmds:
-            run_bash_cmd(cmd, self.logger.debug, interaction=interaction)
+            run_bash_cmd(cmd, interaction=interaction)
 
     def install_repo_package(self):
         cmd = f"sudo pacman -S {self.package}"
         interaction = {
-            "[sudo]": get_linux_password(),
             "Proceed with installation": "Y",
             "are in conflict. Remove": "y",
         }
-        lines = run_bash_cmd(cmd, self.logger.debug, interaction=interaction)
+        lines = run_bash_cmd(cmd, interaction=interaction)
         success = True
         if lines is not None and isinstance(lines, list):
             for line in lines:
@@ -273,11 +268,10 @@ class PackagerRepoPacman(Packager):
         if self.is_sync():
             cmd = f"sudo pacman -Rs {self.package}"
             interaction = {
-                "[sudo]": get_linux_password(),
                 "Proceed with installation": "Y",
                 "are in conflict. Remove": "y",
             }
-            lines = run_bash_cmd(cmd, self.logger.debug, interaction=interaction)
+            lines = run_bash_cmd(cmd, interaction=interaction)
             success = True
             if lines is not None and isinstance(lines, list):
                 for line in lines:
@@ -313,7 +307,7 @@ class PackagerRepoApt(Packager):
         interaction = {
             "Do you want to continue? [Y/n]": "Y"
         }
-        lines = run_bash_cmd(cmd, self.logger.debug, interaction=interaction)
+        lines = run_bash_cmd(cmd, interaction=interaction)
         if lines is not None and isinstance(lines, list):
             for line in lines:
                 if f"Setting up {self.package_name}" in line:
@@ -328,7 +322,7 @@ class PackagerRepoApt(Packager):
             interaction = {
                 "Do you want to continue? [Y/n]": "Y"
             }
-            lines = run_bash_cmd(cmd, self.logger.debug, interaction=interaction)
+            lines = run_bash_cmd(cmd, interaction=interaction)
             if lines is not None and isinstance(lines, list):
                 for line in lines:
                     if f"Removing {self.package_name}" in line:
@@ -416,12 +410,12 @@ class PackagerPip(Packager):
     def sync(self) -> bool:
         cmd = f"pip install {self.package}"
         interaction = {"Proceed (": "y"}
-        return run_bash_cmd(cmd, self.logger.debug, interaction=interaction, return_lines=False, return_code=True) == 0
+        return run_bash_cmd(cmd, interaction=interaction, return_lines=False, return_code=True) == 0
 
     def unsync(self) -> bool:
         cmd = f"pip uninstall {self.package}"
         interaction = {"Proceed (": "y"}
-        return run_bash_cmd(cmd, self.logger.debug, interaction=interaction, return_lines=False, return_code=True) == 0
+        return run_bash_cmd(cmd, interaction=interaction, return_lines=False, return_code=True) == 0
 
     def get_status(self) -> str:
         return [f"{TCOL.FAIL}pip{TCOL.END}", f"{TCOL.OKGREEN}PIP{TCOL.END}"][self.is_sync()]
