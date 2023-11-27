@@ -12,3 +12,4 @@ python_opencv = MultiPackager("python_opencv", [PackagerRepo("repo_python_opencv
 python_zigpy = PackagerPip("python_zigpy", "zigpy", "zigpy")
 python_zigpy_deconz = PackagerPip("python_zigpy_deconz", "zigpy-deconz", "zigpy_deconz")
 python_zha_quirks = PackagerPip("python_zha_quirks", "zha-quirks", "zhaquirks")
+python_aiohttp = PackagerPip("python_aiohttp", "aiohttp", "aiohttp")
