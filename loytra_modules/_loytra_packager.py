@@ -338,13 +338,51 @@ class PackagerRepoApt(Packager):
         return check_if_path_exists("/usr/bin/apt")
 
 
+class PackagerRepoApk(Packager):
+    def __init__(self, name: str, package_name):
+        super().__init__(name)
+        self.package_name = package_name
+
+    def is_sync(self):
+        cmd = f"apk list -I {self.package_name}"
+        lines = run_bash_cmd(cmd)
+        if lines is not None and isinstance(lines, list) and len(lines) == 1 and self.package_name in lines[0]:
+            return True
+        return False
+
+    def sync(self):
+        cmd = f"apk add {self.package_name}"
+        lines = run_bash_cmd(cmd)
+        for line in lines:
+            if "OK" in line:
+                return True
+        return False
+
+    def unsync(self):
+        cmd = f"apk del {self.package_name}"
+        lines = run_bash_cmd(cmd)
+        for line in lines:
+            if "OK" in line:
+                return True
+        return False
+
+    def get_status(self):
+        return f"{(TCOL.FAIL, TCOL.OKGREEN)[self.is_sync()]}{self.package_name}{TCOL.END}"
+
+    @staticmethod
+    def is_valid():
+        return check_if_path_exists("/sbin/apk")
+
+
 class PackagerRepo(Packager):
-    def __init__(self, name: str, pacman_package_name: str, apt_package_name):
+    def __init__(self, name: str, pacman_package_name: str, apt_package_name: str, apk_package_name):
         super().__init__(name)
         if PackagerRepoPacman.is_valid():
             self.package_manager = PackagerRepoPacman(name, pacman_package_name)
         elif PackagerRepoApt.is_valid():
             self.package_manager = PackagerRepoApt(name, apt_package_name)
+        elif PackagerRepoApk.is_valid():
+            self.package_manager = PackagerRepoApk(name, apk_package_name)
         else:
             self.logger.error("No package manager found!")
             raise RuntimeError("No package manager found!")
@@ -419,3 +457,7 @@ class PackagerPip(Packager):
 
     def get_status(self) -> str:
         return [f"{TCOL.FAIL}pip{TCOL.END}", f"{TCOL.OKGREEN}PIP{TCOL.END}"][self.is_sync()]
+
+if __name__ == "__main__":
+    print("TUSAM")
+    repo_lshw = PackagerRepo("repo_lshw", "community/lshw", "lshw", "lshw")
