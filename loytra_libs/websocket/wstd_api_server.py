@@ -23,6 +23,7 @@ class WSTDApiServer(WSTDServerBase):
             transport: WebsocketMessageTransport = WebsocketMessageTransport.MSGPACK,
             on_client_connected: Optional[Callable[['WSTDApiServer', str], Awaitable[Any]]] = None,
             on_client_authorized: Optional[Callable[['WSTDApiServer', str, list[str], Any], Awaitable[Any]]] = None,
+            on_client_deauthorized: Optional[Callable[['WSTDApiServer', str, list[str], Any], Awaitable[Any]]] = None,
             on_client_disconnected: Optional[Callable[['WSTDApiServer', str], Awaitable[Any]]] = None,
             on_tunnel_controller_connected: Optional[Callable[['WSTDApiServer', str], Awaitable[Any]]] = None,
             on_tunnel_controller_disconnected: Optional[Callable[['WSTDApiServer', str], Awaitable[Any]]] = None,
@@ -32,6 +33,7 @@ class WSTDApiServer(WSTDServerBase):
 
         self._on_client_connected_listener = on_client_connected
         self._on_client_authorized_listener = on_client_authorized
+        self._on_client_deauthorized_listener = on_client_deauthorized
         self._on_client_disconnected_listener = on_client_disconnected
         self._on_tunnel_controller_connected_listener = on_tunnel_controller_connected
         self._on_tunnel_controller_disconnected_listener = on_tunnel_controller_disconnected
@@ -50,6 +52,9 @@ class WSTDApiServer(WSTDServerBase):
 
     def set_on_client_authorized_listener(self, listener: Callable[['WSTDApiServer', str, list[str], Any], Awaitable[Any]]):
         self._on_client_authorized_listener = listener
+
+    def set_on_client_deauthorized_listener(self, listener: Callable[['WSTDApiServer', str, list[str], Any], Awaitable[Any]]):
+        self._on_client_deauthorized_listener = listener
 
     def set_on_client_disconnected_listener(self, listener: Callable[['WSTDApiServer', str], Awaitable[Any]]):
         self._on_client_disconnected_listener = listener
@@ -70,6 +75,10 @@ class WSTDApiServer(WSTDServerBase):
     async def _on_client_authorized(self, client_id: str, intent: list[str], info: Any):
         if self._on_client_authorized_listener is not None:
             await self._on_client_authorized_listener(self, client_id, intent, info)
+
+    async def _on_client_deauthorized(self, client_id: str, intent: list[str], info: Any):
+        if self._on_client_deauthorized_listener is not None:
+            await self._on_client_deauthorized_listener(self, client_id, intent, info)
 
     async def _on_client_disconnected(self, client_id: str):
         if self._on_client_disconnected_listener is not None:

@@ -87,6 +87,9 @@ class WSTDServerBase:
     async def _on_client_authorized(self, client_id: str, intent: list[str], info: Any):
         pass
 
+    async def _on_client_deauthorized(self, client_id: str, intent: list[str], info: Any):
+        pass
+
     async def _on_client_disconnected(self, client_id: str):
         pass
 
@@ -106,6 +109,10 @@ class WSTDServerBase:
     def _debug_log(self, msg: str):
         if self._debug_mode:
             self._logger.debug(msg)
+
+    async def _notify_client_disconnected(self, client_id: str, intent: list[str], info: Any):
+        await self._on_client_deauthorized(client_id, intent, info)
+        await self._on_client_disconnected(client_id)
 
     def get_connected_clients(self, include_tunnel_controllers: bool = False) -> list[tuple[str, list[str], Any]]:
         result: list[tuple[str, list[str], Any]] = []
@@ -301,9 +308,12 @@ class WSTDServerBase:
         # check if is tunnel controller
         is_tunnel_controller = self._is_tunnel_controller(tunnel_id)
         client_id = self._wsrefs[socket_id].clients.get(tunnel_id)
-        if client_id is not None:
-            del self._wsrefs[socket_id].clients[tunnel_id]
-        if client_id in self._clients:
+        if client_id is None:
+            return False
+
+        del self._wsrefs[socket_id].clients[tunnel_id]
+        client = self._clients.get(client_id)
+        if client is not None:
             del self._clients[client_id]
             self._logger.info(f"Client [{client_id}] on socket [{socket_id}] disconnected!")
 
@@ -311,7 +321,7 @@ class WSTDServerBase:
             if is_tunnel_controller:
                 await self._on_tunnel_controller_disconnected(client_id)
             else:
-                await self._on_client_disconnected(client_id)
+                await self._notify_client_disconnected(client_id, client.intent, client.info)
 
             return True
         else:
@@ -400,7 +410,7 @@ class WSTDServerBase:
                     if is_tunnel_controller:
                         await self._on_tunnel_controller_disconnected(client_id)
                     else:
-                        await self._on_client_disconnected(client_id)
+                        await self._notify_client_disconnected(client_id, client.intent, client.info)
 
         self._logger.info(f"Socket [{socket_id}] disconnected")
 
