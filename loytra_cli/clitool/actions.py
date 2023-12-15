@@ -136,11 +136,14 @@ class LoytraCliActions:
                 for service in module.services:
                     servicer = module.services[service]
                     active = servicer.get_active_state().startswith("activ")
-                    servicer.install()
-                    if active:
-                        name = f"{module.module_name}/{service}"
-                        print(f"  {name}")
-                        servicer.restart()
+                    if f"{module.module_name}" in ["devconn_vpn_client"]:
+                        self._logger.warning(f"Ignoring restart of {module.module_name}/{service}")
+                    else:
+                        servicer.install()
+                        if active:
+                            name = f"{module.module_name}/{service}"
+                            print(f"  {name}")
+                            servicer.restart()
         else:
             servicer = self.get_servicer_by_module_service_name(module_service_name)
             if servicer is not None:
@@ -301,12 +304,15 @@ class LoytraCliActions:
                     continue
 
                 for service in module.services:
-                    servicer = module.services[service]
-                    if servicer.get_active_state().startswith("activ"):
-                        name = f"{module.module_name}/{service}"
-                        running_services[name] = servicer
-                        print(f"  {name}")
-                        servicer.stop()
+                    if f"{module.module_name}" in ["devconn_vpn_client"]:
+                        self._logger.warning(f"Ignoring update of {module.module_name}/{service}")
+                    else:
+                        servicer = module.services[service]
+                        if servicer.get_active_state().startswith("activ"):
+                            name = f"{module.module_name}/{service}"
+                            running_services[name] = servicer
+                            print(f"  {name}")
+                            servicer.stop()
 
             print(f"{TCOL.OKBLUE}{TCOL.BOLD}{'Updating repos:'}{TCOL.END}")
             for module in self._modules.values():
