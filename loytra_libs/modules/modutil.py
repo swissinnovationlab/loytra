@@ -1,12 +1,15 @@
 import sys, os, os.path
 import importlib, pkgutil
 
+from loytra_common.options import options
+
 def import_module(module_name: str):
     try:
         return importlib.import_module(module_name)
     except:
-        import traceback
-        traceback.print_exc()
+        if options.verbose:
+            import traceback
+            traceback.print_exc()
         return None
 
 def _iter_modules(path: str, prefix: str, recursive: bool = True):
