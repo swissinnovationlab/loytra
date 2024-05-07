@@ -180,7 +180,8 @@ class WSTDServerBase:
 
     async def send_tunnel_message(self, topic: str, data: Any, target: WebsocketTunnelTarget, extra: Optional[dict[str, Any]] = None) -> bool:
         results: list[bool] = []
-        for wsref in self._wsrefs.values():
+        wsrefs = list(self._wsrefs.values())
+        for wsref in wsrefs:
             if wsref.is_tunnel:
                 tunnel_id = _TUNNEL_NONE
                 if target == WebsocketTunnelTarget.ALL:
