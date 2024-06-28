@@ -203,10 +203,12 @@ class WSTDServerBase:
         return await self._send_socket_message(wsref, topic, data, client.tunnel_id, client_id=client_id, extra=extra)
 
     async def send_broadcast_message(self, topic: str, data: Any, intent_filter: Optional[str] = None, extra: Optional[dict[str, Any]] = None):
-        for wsref in self._wsrefs.values():
+        wsrefs = list(self._wsrefs.values())
+        clients = self._clients.copy()
+        for wsref in wsrefs:
             if not wsref.is_tunnel:
                 for client_id in wsref.clients.values():
-                    client = self._clients.get(client_id)
+                    client = clients.get(client_id)
                     if client is not None and (intent_filter is None or intent_filter in client.intent):
                         await self._send_socket_message(wsref, topic, data, client_id=client.client_id, extra=extra)
             else:
@@ -214,7 +216,7 @@ class WSTDServerBase:
                 target_clients: list[_WebsocketClient] = []
                 if intent_filter is not None:
                     for client_id in wsref.clients.values():
-                        client = self._clients.get(client_id)
+                        client = clients.get(client_id)
                         if client is not None:
                             if intent_filter in client.intent or client.tunnel_id == _TUNNEL_CONTROLLER:
                                 target_clients.append(client)
