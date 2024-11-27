@@ -37,10 +37,9 @@ class _WebsocketClient:
 
 
 class _WebsocketReference:
-    def __init__(self, socket, socket_id: str, path: str) -> None:
+    def __init__(self, socket, socket_id: str) -> None:
         self.socket = socket
         self.socket_id = socket_id
-        self.path = path
         self.clients: dict[str, str] = {}
         self.is_tunnel = False
 
@@ -330,11 +329,11 @@ class WSTDServerBase:
         else:
             return False
 
-    async def _handler(self, websocket, path):
+    async def _handler(self, websocket):
         socket_id = secrets.token_hex(6)
 
         # store reference
-        self._wsrefs[socket_id] = _WebsocketReference(websocket, socket_id, path)
+        self._wsrefs[socket_id] = _WebsocketReference(websocket, socket_id)
 
         self._logger.info(f"Socket [{socket_id}] connected!")
         tasks = set()
