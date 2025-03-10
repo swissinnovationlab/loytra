@@ -418,7 +418,13 @@ class WSTDServerBase:
 
     async def run_server(self):
         await self._on_run_websocket_server()
-        async with websockets.serve(self._handler, self._host, int(self._port)):
+        async with websockets.serve(
+            handler=self._handler,
+            host=self._host,
+            port=int(self._port),
+            ping_interval=30.0,
+            ping_timeout=10.0
+        ):
             self._logger.info(f"Started on port: {self._port}")
             await asyncio.Future()
 
