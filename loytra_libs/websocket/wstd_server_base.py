@@ -67,6 +67,8 @@ class WSTDServerBase:
         self._port = port
         self._transport = transport
 
+        self._auto_restart = True
+
         self._logger = logutil.get(name="api_server", tag="API_SERVER")
 
         self._clients: dict[str, _WebsocketClient] = {}
@@ -416,17 +418,41 @@ class WSTDServerBase:
 
         self._logger.info(f"Socket [{socket_id}] disconnected")
 
-    async def run_server(self):
-        await self._on_run_websocket_server()
-        async with websockets.serve(
+    async def _do_run_server(self):
+        self._logger.info("Starting...")
+        server = await websockets.serve(
             handler=self._handler,
             host=self._host,
             port=int(self._port),
             ping_interval=30.0,
-            ping_timeout=10.0
-        ):
-            self._logger.info(f"Started on port: {self._port}")
-            await asyncio.Future()
+            ping_timeout=10.0)
+        self._logger.info(f"Started on port: {self._port}")
+
+        try:
+            await server.wait_closed()
+        except:
+            self._logger.error("Server crashed during wait_closed!", exc_info=True)
+        finally:
+            self._logger.warning("Server loop exited!")
+            self._wsrefs.clear()
+            self._clients.clear()
+            self._logger.info("Clients and sockets cleared!")
+            if server.is_serving():
+                self._logger.info("Shutting down server...")
+                server.close()
+                await server.wait_closed()
+
+    async def run_server(self):
+        self._logger.info("Run server initialized...")
+        await self._on_run_websocket_server()
+        self._logger.info(f"Starting auto-restart loop, auto-restart={self._auto_restart}")
+        while self._auto_restart:
+            try:
+                await self._do_run_server()
+            except:
+                self._logger.error(f"Server crashed!", exc_info=True)
+            finally:
+                self._logger.info("Server loop exit detected, restarting...")
 
     def destroy(self):
         self._on_destroy()
