@@ -378,12 +378,15 @@ class WSTDServerBase:
                         if client_id is not None:
                             client = self._clients.get(client_id)
 
+                        is_tunnel_controller = self._is_tunnel_controller(tunnel_id)
                         if client_id is None or client is None:
-                            self._logger.warning(f"Socket [{socket_id}] received messsage ['{topic}'] from unauthorized client!")
-                            continue
+                            if not is_tunnel_controller:
+                                self._logger.warning(f"Socket [{socket_id}] received messsage ['{topic}'] from unauthorized client!")
+                                continue
+                            else:
+                                client_id = "?"
 
                         self._debug_log(f"[RECV on [{socket_id}] from {client_id}] {topic}")
-                        is_tunnel_controller = self._is_tunnel_controller(tunnel_id)
                         task = asyncio.get_running_loop().create_task(self._on_message_received(client_id, topic, data, parsed, is_tunnel_controller))
                         tasks.add(task)
                         task.add_done_callback(tasks.discard)
