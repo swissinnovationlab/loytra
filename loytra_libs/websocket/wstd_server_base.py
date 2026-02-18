@@ -213,22 +213,33 @@ class WSTDServerBase:
                     if client is not None and (intent_filter is None or intent_filter in client.intent):
                         await self._send_socket_message(wsref, topic, data, client_id=client.client_id, extra=extra)
             else:
+                should_send_message = True
                 send_tunnel_broadcast = True
                 target_clients: list[_WebsocketClient] = []
                 if intent_filter is not None:
+                    any_client_with_intent = False
                     for client_id in wsref.clients.values():
                         client = clients.get(client_id)
                         if client is not None:
-                            if intent_filter in client.intent or client.tunnel_id == _TUNNEL_CONTROLLER:
+                            if intent_filter in client.intent:
+                                any_client_with_intent = True
+                                target_clients.append(client)
+                            elif client.tunnel_id == _TUNNEL_CONTROLLER:
                                 target_clients.append(client)
                             else:
                                 send_tunnel_broadcast = False
 
-                if send_tunnel_broadcast:
-                    await self._send_socket_message(wsref, topic, data, tunnel_id=_TUNNEL_CLIENTS, extra=extra)
+                    if not any_client_with_intent:
+                        should_send_message = False
+
+                if should_send_message:
+                    if send_tunnel_broadcast:
+                        await self._send_socket_message(wsref, topic, data, tunnel_id=_TUNNEL_CLIENTS, extra=extra)
+                    else:
+                        for client in target_clients:
+                            await self._send_socket_message(wsref, topic, data, tunnel_id=client.tunnel_id, client_id=client.client_id, extra=extra)
                 else:
-                    for client in target_clients:
-                        await self._send_socket_message(wsref, topic, data, tunnel_id=client.tunnel_id, client_id=client.client_id, extra=extra)
+                    self._debug_log(f"[BROADCAST.CANCEL on {wsref.socket_id}][NO_INTENT_CLIENT] {topic}")
 
     async def send_message(self, topic: str, data: Any, client_id: Optional[str], intent_filter: Optional[str] = None, extra: Optional[dict[str, Any]] = None):
         client_id = client_id if isinstance(client_id, str) else None
